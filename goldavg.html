@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAPC: Gold Average Price Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f8f8fb;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .btn-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-add { background: #409eff; color: #fff; }
+        .btn-calc { background: #67c23a; color: #fff; }
+        .btn-calc:disabled { background: #c2e7b0; cursor: not-allowed; }
+        .btn-export { background: #e6a23c; color: #fff; }
+        .btn-import { background: #909399; color: #fff; }
+
+        .filter-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .bank-filter, .layout-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bank-filter label, .layout-filter label { font-size: 14px; }
+        .bank-filter select, .layout-filter select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .avg-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .avg-item {
+            background: #fff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            font-size: 14px;
+        }
+        .avg-item b {
+            color: #e6a23c; font-weight: bold;
+        }
+
+        .records {
+            width: 100%;
+            margin: 0 auto 15px;
+        }
+        .record-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .record-index {
+            width: 32px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        .record-item.sold {
+            opacity: 0.4;
+            background: #f1f1f1;
+        }
+        .record-item input {
+            padding: 7px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 120px;
+        }
+        .action-btn {
+            padding: 7px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .sell-btn { background: #f56c6c; color: white; }
+        .del-btn { background: #909399; color: white; }
+
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .bank-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 16px;
+            width: 220px;
+            flex-shrink: 0;
+            text-align: left;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #409eff;
+            margin-bottom: 4px;
+            padding-bottom: 6px;
+        }
+        .card-avg {
+            font-size: 13px;
+            color: #e6a23c;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #eee;
+            gap:8px;
+        }
+        .card-item.sold { opacity: 0.4; }
+        .card-item-line {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        .card-info{
+            flex:1;
+        }
+        .card-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width:44px;
+        }
+        .card-btn {
+            padding: 3px 0;
+            font-size: 11px;
+            border: none;
+            border-radius: 3px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .card-sell { background: #f89898; }
+        .card-del { background: #b4b6ba; }
+        
+        .card-add-row {
+            margin-top: 8px;
+            text-align: center;
+        }
+        .card-add-btn {
+            width: 100%;
+            padding: 4px 0;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            background: #a0d9ff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 15px;
+        }
+        .page-btn {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: #409eff;
+            color: #fff;
+            border-color: #409eff;
+        }
+
+        .list-mode .card-container { display: none !important; }
+        .card-mode .records, .card-mode .pagination { display: none !important; }
+
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container list-mode" id="mainContainer">
+        <h1 class="title">GAPC: Gold Average Price Calculator</h1>
+
+        <div class="btn-row">
+            <button class="btn btn-add" id="addRecord">新增数据</button>
+            <button class="btn btn-calc" id="calcBtn">计算均价</button>
+            <button class="btn btn-export" id="exportBtn">导出数据</button>
+            <button class="btn btn-import" id="importBtn">导入数据</button>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <div class="filter-row">
+            <div class="bank-filter">
+                <label>选择银行：</label>
+                <select id="bankSelect">
+                    <option value="all">全部银行</option>
+                </select>
+            </div>
+            <div class="layout-filter">
+                <label>选择布局：</label>
+                <select id="layoutSelect">
+                    <option value="list">条目布局</option>
+                    <option value="card">卡片布局</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="avg-bar" id="avgBar"></div>
+        <div class="records" id="recordsContainer"></div>
+        <div class="card-container" id="cardContainer"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+<script>
+    const pageSize = 10;
+    let currentPage = 1;
+    let currentMode = 'list';
+    const calcBtn = document.getElementById('calcBtn');
+    const addRecordBtn = document.getElementById('addRecord'); // 新增：获取新增数据按钮
+
+    window.onload = () => {
+        if (recordsContainer.children.length === 0) {
+            addRecord();
+        }
+        bindEvents();
+        // 初始化：默认条目布局，显示按钮
+        updateBtnVisibility(currentMode);
+    };
+
+    function bindEvents() {
+        document.getElementById('addRecord').onclick = () => {
+            addRecord();
+            refreshAll();
+        };
+        document.getElementById('calcBtn').onclick = calculateAvg;
+        document.getElementById('exportBtn').onclick = exportData;
+        document.getElementById('importBtn').onclick = () => fileInput.click();
+        document.getElementById('fileInput').onchange = importData;
+        
+        document.getElementById('bankSelect').onchange = () => {
+            currentPage = 1;
+            renderList();
+            renderCard();
+            refreshAvgDynamic();
+        };
+        
+        document.getElementById('layoutSelect').onchange = function() {
+            switchMode(this.value);
+        };
+    }
+
+    // 新增：控制按钮显示/隐藏的函数
+    function updateBtnVisibility(mode) {
+        if (mode === 'list') {
+            addRecordBtn.style.display = 'inline-block';
+            calcBtn.style.display = 'inline-block';
+        } else {
+            addRecordBtn.style.display = 'none';
+            calcBtn.style.display = 'none';
+        }
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        mainContainer.className = 'container ' + mode + '-mode';
+        renderList();
+        renderCard();
+        // 新增：切换布局时更新按钮显示状态
+        updateBtnVisibility(mode);
+        
+        if (mode === 'card') {
+            document.getElementById('avgBar').style.display = 'none';
+            calcBtn.disabled = true;
+        } else {
+            calcBtn.disabled = false;
+        }
+    }
+
+    function addRecord(data = {}) {
+        const c = recordsContainer;
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        if (data.sold) div.classList.add('sold');
+
+        div.innerHTML = `
+            <div class="record-index">${c.children.length+1}</div>
+            <input type="text" class="bank" placeholder="银行" value="${data.bank||''}" required>
+            <input type="number" class="price" placeholder="买入金价" step="0.01" value="${data.price||''}">
+            <input type="number" class="gram" placeholder="克数" step="0.01" value="${data.gram||''}" required>
+            <input type="number" class="worth" placeholder="总金额" step="0.01" value="${data.worth||''}" required>
+            <input type="text" class="remark" placeholder="备注" value="${data.remark||''}">
+            <button class="action-btn sell-btn">卖出</button>
+            <button class="action-btn del-btn">删除</button>
+        `;
+
+        c.appendChild(div);
+
+        div.querySelector('.sell-btn').onclick = () => {
+            div.classList.toggle('sold');
+            refreshAll();
+        };
+        div.querySelector('.del-btn').onclick = () => {
+            div.remove();
+            refreshAll();
+        };
+        div.querySelectorAll('input').forEach(i => {
+            i.oninput = refreshAll;
+        });
+    }
+
+    function addRecordToBank(bankName) {
+        addRecord({ bank: bankName });
+        refreshAll();
+    }
+
+    function refreshAll() {
+        refreshBankSelect();
+        updateIndex();
+        renderList();
+        renderCard();
+    }
+
+    function updateIndex() {
+        document.querySelectorAll('.record-item').forEach((it,i)=>{
+            it.querySelector('.record-index').textContent = i+1;
+        });
+    }
+
+    function refreshBankSelect() {
+        const banks = new Set(['all']);
+        document.querySelectorAll('.record-item').forEach(it=>{
+            const b = it.querySelector('.bank').value.trim();
+            if(b) banks.add(b);
+        });
+        const old = bankSelect.value;
+        bankSelect.innerHTML = '';
+        banks.forEach(b=>{
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b==='all'?'全部银行':b;
+            bankSelect.appendChild(opt);
+        });
+        bankSelect.value = old||'all';
+    }
+
+    function renderList() {
+        if(currentMode!=='list') return;
+        const list = Array.from(document.querySelectorAll('.record-item'));
+        const filterBank = bankSelect.value;
+        const show = list.filter(it=>{
+            const b = it.querySelector('.bank').value.trim();
+            return filterBank==='all' || b===filterBank;
+        });
+        list.forEach(it=>it.style.display='none');
+        const s = (currentPage-1)*pageSize;
+        const e = s+pageSize;
+        show.slice(s,e).forEach(it=>it.style.display='flex');
+
+        const total = Math.ceil(show.length/pageSize)||1;
+        pagination.innerHTML = '';
+        for(let i=1;i<=total;i++){
+            const btn = document.createElement('button');
+            btn.className = 'page-btn'+(i===currentPage?' active':'');
+            btn.textContent = i;
+            btn.onclick = ()=>{currentPage=i;renderList();};
+            pagination.appendChild(btn);
+        }
+    }
+
+    function renderCard() {
+        if(currentMode!=='card') return;
+        const items = Array.from(document.querySelectorAll('.record-item'));
+        const filterBank = bankSelect.value;
+        const group = {};
+        
+        items.forEach((it, idx) => {
+            const b = it.querySelector('.bank').value.trim();
+            if(!b) return;
+            if(filterBank !== 'all' && b !== filterBank) return;
+            if(!group[b]) group[b] = [];
+            group[b].push({ item: it, index: idx });
+        });
+
+        cardContainer.innerHTML = '';
+        Object.entries(group).forEach(([bank, list])=>{
+            const card = document.createElement('div');
+            card.className = 'bank-card';
+            const { avg } = getBankAvg(bank);
+            let html = `
+                <div class="card-title">${bank}</div>
+                <div class="card-avg">均价：${avg} 元/克</div>
+            `;
+            list.forEach(({ item, index }) => {
+                const sold = item.classList.contains('sold');
+                const price = item.querySelector('.price').value || '-';
+                const gram = item.querySelector('.gram').value || '-';
+                const worth = item.querySelector('.worth').value || '-';
+                const remark = item.querySelector('.remark').value || '无';
+                
+                html += `
+                <div class="card-item ${sold?'sold':''}" data-idx="${index}">
+                    <div class="card-info">
+                        <div class="card-item-line">金价：${price} 元/克</div>
+                        <div class="card-item-line">克数：${gram} 克</div>
+                        <div class="card-item-line">金额：${worth} 元</div>
+                        <div class="card-item-line">备注：${remark}</div>
+                    </div>
+                    <div class="card-btns">
+                        <button class="card-btn card-sell">卖出</button>
+                        <button class="card-btn card-del">删除</button>
+                    </div>
+                </div>`;
+            });
+            
+            html += `
+            <div class="card-add-row">
+                <button class="card-add-btn" data-bank="${bank}">+ 新增本条数据</button>
+            </div>`;
+            
+            card.innerHTML = html;
+            cardContainer.appendChild(card);
+        });
+
+        bindCardBtns();
+        bindCardAddBtns();
+    }
+
+    function bindCardBtns() {
+        document.querySelectorAll('.card-sell').forEach(btn => {
+            btn.onclick = function() {
+                const idx = this.closest('.card-item').dataset.idx;
+                const item = document.querySelectorAll('.record-item')[idx];
+                item.classList.toggle('sold');
+                refreshAll();
+            };
+        });
+        document.querySelectorAll('.card-del').forEach(btn => {
+            btn.onclick = function() {
+                const idx = this.closest('.card-item').dataset.idx;
+                const item = document.querySelectorAll('.record-item')[idx];
+                item.remove();
+                refreshAll();
+            };
+        });
+    }
+
+    function bindCardAddBtns() {
+        document.querySelectorAll('.card-add-btn').forEach(btn => {
+            btn.onclick = function() {
+                const bank = this.dataset.bank;
+                addRecordToBank(bank);
+            };
+        });
+    }
+
+    function getBankAvg(bank) {
+        let g=0, v=0;
+        const valid = [];
+        document.querySelectorAll('.record-item').forEach(it=>{
+            const b = it.querySelector('.bank').value.trim();
+            const sold = it.classList.contains('sold');
+            const gram = parseFloat(it.querySelector('.gram').value)||0;
+            const worth = parseFloat(it.querySelector('.worth').value)||0;
+            const price = parseFloat(it.querySelector('.price').value)||0;
+            if((bank===''||b===bank) && !sold && gram>0){
+                g += gram;
+                v += worth;
+                valid.push({price});
+            }
+        });
+        let avg = '0.00';
+        if(g>0){
+            avg = valid.length===1 ? valid[0].price.toFixed(2) : (v/g).toFixed(2);
+        }
+        return {g,v,avg};
+    }
+
+    function calculateAvg() {
+        refreshAvgDynamic();
+    }
+
+    function refreshAvgDynamic() {
+        if (currentMode !== 'list') return;
+        const filterBank = bankSelect.value;
+        const banks = new Set();
+        document.querySelectorAll('.record-item').forEach(it=>{
+            const b = it.querySelector('.bank').value.trim();
+            if(b) banks.add(b);
+        });
+        let bar = '';
+        if(filterBank !== 'all') {
+            const { avg } = getBankAvg(filterBank);
+            bar = `<div class="avg-item">${filterBank}：<b>${avg}</b></div>`;
+        } else {
+            banks.forEach(b=>{
+                const { avg } = getBankAvg(b);
+                bar += `<div class="avg-item">${b}：<b>${avg}</b></div>`;
+            });
+        }
+        avgBar.innerHTML = bar;
+        avgBar.style.display = 'flex';
+    }
+
+    function exportData() {
+        const data = Array.from(document.querySelectorAll('.record-item')).map(it=>({
+            bank: it.querySelector('.bank').value.trim(),
+            price: it.querySelector('.price').value.trim(),
+            gram: it.querySelector('.gram').value.trim(),
+            worth: it.querySelector('.worth').value.trim(),
+            remark: it.querySelector('.remark').value.trim(),
+            sold: it.classList.contains('sold')
+        }));
+        const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '黄金数据_'+new Date().toLocaleDateString()+'.json';
+        a.click();
+    }
+
+    function importData(e) {
+        const f = e.target.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = ev=>{
+            try{
+                const d = JSON.parse(ev.target.result);
+                recordsContainer.innerHTML = '';
+                d.forEach(item=>addRecord(item));
+                refreshAll();
+                alert('导入成功');
+            }catch(e){alert('JSON格式错误')}
+        };
+        r.readAsText(f);
+    }
+</script>
+</body>
+</html>

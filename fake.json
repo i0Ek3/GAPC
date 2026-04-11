@@ -1,0 +1,130 @@
+[
+  {
+    "bank": "浙商银行",
+    "price": "1158.64",
+    "gram": "8.63081",
+    "worth": "10000",
+    "remark": "特惠价",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1152.32",
+    "gram": "4.3391",
+    "worth": "5000",
+    "remark": "线上申购",
+    "sold": false
+  },
+  {
+    "bank": "浙商银行",
+    "price": "1151.13",
+    "gram": "4.34356",
+    "worth": "5000",
+    "remark": "特惠价",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1108.40",
+    "gram": "4.51101",
+    "worth": "5000",
+    "remark": "限时活动",
+    "sold": false
+  },
+  {
+    "bank": "浙商银行",
+    "price": "1132.89",
+    "gram": "4.4135",
+    "worth": "5000",
+    "remark": "线下专享",
+    "sold": true
+  },
+  {
+    "bank": "浙商银行",
+    "price": "1111.25",
+    "gram": "4.4994",
+    "worth": "5000",
+    "remark": "特惠价",
+    "sold": false
+  },
+  {
+    "bank": "工商银行",
+    "price": "1015.73",
+    "gram": "4.9225",
+    "worth": "5000",
+    "remark": "暂未开售",
+    "sold": false
+  },
+  {
+    "bank": "广发银行",
+    "price": "1139.42",
+    "gram": "4.3882",
+    "worth": "5000",
+    "remark": "",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1195.46",
+    "gram": "8.3651",
+    "worth": "10000",
+    "remark": "线下专享",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1107.05",
+    "gram": "4.5165",
+    "worth": "5000",
+    "remark": "",
+    "sold": true
+  },
+  {
+    "bank": "民生银行",
+    "price": "1019.13",
+    "gram": "4.9061",
+    "worth": "5000",
+    "remark": "暂未开售",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1123.96",
+    "gram": "4.449",
+    "worth": "5000",
+    "remark": "限时活动",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1153.16",
+    "gram": "4.3359",
+    "worth": "5000",
+    "remark": "",
+    "sold": false
+  },
+  {
+    "bank": "民生银行",
+    "price": "1094.01",
+    "gram": "4.57034",
+    "worth": "5000",
+    "remark": "线上申购",
+    "sold": true
+  },
+  {
+    "bank": "民生银行",
+    "price": "1138.13",
+    "gram": "4.393",
+    "worth": "5000",
+    "remark": "特惠价",
+    "sold": false
+  },
+  {
+    "bank": "浙商银行",
+    "price": "1159.43",
+    "gram": "4.3125",
+    "worth": "5000",
+    "remark": "",
+    "sold": false
+  }
+]

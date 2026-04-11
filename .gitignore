@@ -1,0 +1,53 @@
+data.json
+
+# =========================================
+# COMMON
+# =========================================
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.bak
+*.temp
+
+# ENV files
+.env
+.env.*
+*.secret
+
+# Git
+.git/
+.gitmodules
+.svn/
+
+# System
+.idea/
+.vscode/
+*.iml
+
+
+# =========================================
+# VS CODE
+# =========================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+
+# =========================================
+# JETBRAINS
+# =========================================
+.idea/
+*.iml
+out/
+
+
+# =========================================
+# macOS
+# =========================================
+.DS_Store
+.AppleDouble
+.LSOverride
