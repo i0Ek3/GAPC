@@ -245,6 +245,45 @@
         .card-mode .records, .card-mode .pagination { display: none !important; }
 
         #fileInput { display: none; }
+
+        /* 已锁定(新增成功)的字段样式 */
+        .record-item input.locked-field,
+        .card-input.locked-field {
+            background: #f5f7fa;
+            color: #909399;
+            cursor: not-allowed;
+        }
+
+        /* 卡片内可编辑输入框：标签列、输入列、单位列宽度固定，四行输入框大小一致 */
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .card-field {
+            display: grid;
+            grid-template-columns: 36px minmax(0, 1fr) 36px;
+            align-items: center;
+            column-gap: 2px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+        .card-field .lbl, .card-field .unit { overflow: hidden; }
+        .card-field .unit { color: #666; }
+        .card-input {
+            width: 100%;
+            height: 22px;
+            padding: 2px 4px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .card-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+        .card-input::-webkit-outer-spin-button,
+        .card-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .card-btns { flex-shrink: 0; justify-content: center; }
     </style>
 </head>
 <body>
@@ -286,40 +325,52 @@
     let currentPage = 1;
     let currentMode = 'list';
     const calcBtn = document.getElementById('calcBtn');
-    const addRecordBtn = document.getElementById('addRecord'); // 新增：获取新增数据按钮
+    const addRecordBtn = document.getElementById('addRecord');
 
     window.onload = () => {
         if (recordsContainer.children.length === 0) {
             addRecord();
         }
         bindEvents();
-        // 初始化：默认条目布局，显示按钮
         updateBtnVisibility(currentMode);
+        refreshAll();
     };
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     function bindEvents() {
         document.getElementById('addRecord').onclick = () => {
-            addRecord();
+            // 修复1：若当前选中了某个银行，新增条目自动归属该银行
+            const filterBank = bankSelect.value;
+            addRecord(filterBank && filterBank !== 'all' ? { bank: filterBank } : {});
+            // 跳转到新条目所在的最后一页
+            currentPage = Math.max(1, Math.ceil(getFilteredRecords().length / pageSize));
             refreshAll();
         };
         document.getElementById('calcBtn').onclick = calculateAvg;
         document.getElementById('exportBtn').onclick = exportData;
         document.getElementById('importBtn').onclick = () => fileInput.click();
         document.getElementById('fileInput').onchange = importData;
-        
+
         document.getElementById('bankSelect').onchange = () => {
             currentPage = 1;
             renderList();
             renderCard();
             refreshAvgDynamic();
         };
-        
+
         document.getElementById('layoutSelect').onchange = function() {
             switchMode(this.value);
         };
     }
 
-    // 新增：控制按钮显示/隐藏的函数
     function updateBtnVisibility(mode) {
         if (mode === 'list') {
             addRecordBtn.style.display = 'inline-block';
@@ -335,15 +386,46 @@
         mainContainer.className = 'container ' + mode + '-mode';
         renderList();
         renderCard();
-        // 新增：切换布局时更新按钮显示状态
         updateBtnVisibility(mode);
-        
+
         if (mode === 'card') {
             document.getElementById('avgBar').style.display = 'none';
             calcBtn.disabled = true;
         } else {
             calcBtn.disabled = false;
         }
+    }
+
+    /* ---------- 锁定逻辑（修复2） ----------
+       条目“新增成功”的判定：银行名称非空，且克数>0、总金额>0。
+       满足后，买入金价 / 克数 / 总金额 变为只读，仅银行名称和备注可继续修改。 */
+    const LOCK_FIELDS = ['price', 'gram', 'worth'];
+
+    function isRecordValid(div) {
+        const bank = div.querySelector('.bank').value.trim();
+        const gram = parseFloat(div.querySelector('.gram').value) || 0;
+        const worth = parseFloat(div.querySelector('.worth').value) || 0;
+        return !!bank && gram > 0 && worth > 0;
+    }
+
+    function lockRecord(div) {
+        div.dataset.locked = '1';
+        LOCK_FIELDS.forEach(f => {
+            const inp = div.querySelector('.' + f);
+            inp.readOnly = true;
+            inp.classList.add('locked-field');
+            inp.title = '已新增成功，不可修改（如需调整请删除后重新新增）';
+        });
+    }
+
+    // 返回当前是否处于锁定状态
+    function tryLockRecord(div) {
+        if (div.dataset.locked === '1') return true;
+        if (isRecordValid(div)) {
+            lockRecord(div);
+            return true;
+        }
+        return false;
     }
 
     function addRecord(data = {}) {
@@ -354,11 +436,11 @@
 
         div.innerHTML = `
             <div class="record-index">${c.children.length+1}</div>
-            <input type="text" class="bank" placeholder="银行" value="${data.bank||''}" required>
-            <input type="number" class="price" placeholder="买入金价" step="0.01" value="${data.price||''}">
-            <input type="number" class="gram" placeholder="克数" step="0.01" value="${data.gram||''}" required>
-            <input type="number" class="worth" placeholder="总金额" step="0.01" value="${data.worth||''}" required>
-            <input type="text" class="remark" placeholder="备注" value="${data.remark||''}">
+            <input type="text" class="bank" placeholder="银行" value="${escapeHtml(data.bank)}" required>
+            <input type="number" class="price" placeholder="买入金价" step="0.01" value="${escapeHtml(data.price)}">
+            <input type="number" class="gram" placeholder="克数" step="0.01" value="${escapeHtml(data.gram)}" required>
+            <input type="number" class="worth" placeholder="总金额" step="0.01" value="${escapeHtml(data.worth)}" required>
+            <input type="text" class="remark" placeholder="备注" value="${escapeHtml(data.remark)}">
             <button class="action-btn sell-btn">卖出</button>
             <button class="action-btn del-btn">删除</button>
         `;
@@ -375,6 +457,21 @@
         };
         div.querySelectorAll('input').forEach(i => {
             i.oninput = refreshAll;
+        });
+        // 输入完成（失焦/回车）后判断是否新增成功并锁定
+        ['bank', 'price', 'gram', 'worth'].forEach(f => {
+            div.querySelector('.' + f).onchange = () => tryLockRecord(div);
+        });
+
+        // 导入的、或已填写完整的数据直接锁定
+        tryLockRecord(div);
+    }
+
+    function getFilteredRecords() {
+        const filterBank = bankSelect.value;
+        return Array.from(document.querySelectorAll('.record-item')).filter(it => {
+            const b = it.querySelector('.bank').value.trim();
+            return filterBank === 'all' || b === filterBank;
         });
     }
 
@@ -410,23 +507,21 @@
             opt.textContent = b==='all'?'全部银行':b;
             bankSelect.appendChild(opt);
         });
-        bankSelect.value = old||'all';
+        bankSelect.value = banks.has(old) ? old : 'all';
     }
 
     function renderList() {
         if(currentMode!=='list') return;
         const list = Array.from(document.querySelectorAll('.record-item'));
-        const filterBank = bankSelect.value;
-        const show = list.filter(it=>{
-            const b = it.querySelector('.bank').value.trim();
-            return filterBank==='all' || b===filterBank;
-        });
+        const show = getFilteredRecords();
+        const total = Math.ceil(show.length/pageSize)||1;
+        if (currentPage > total) currentPage = total;
+
         list.forEach(it=>it.style.display='none');
         const s = (currentPage-1)*pageSize;
         const e = s+pageSize;
         show.slice(s,e).forEach(it=>it.style.display='flex');
 
-        const total = Math.ceil(show.length/pageSize)||1;
         pagination.innerHTML = '';
         for(let i=1;i<=total;i++){
             const btn = document.createElement('button');
@@ -442,7 +537,7 @@
         const items = Array.from(document.querySelectorAll('.record-item'));
         const filterBank = bankSelect.value;
         const group = {};
-        
+
         items.forEach((it, idx) => {
             const b = it.querySelector('.bank').value.trim();
             if(!b) return;
@@ -455,25 +550,27 @@
         Object.entries(group).forEach(([bank, list])=>{
             const card = document.createElement('div');
             card.className = 'bank-card';
+            card.dataset.bank = bank;
             const { avg } = getBankAvg(bank);
             let html = `
-                <div class="card-title">${bank}</div>
+                <div class="card-title">${escapeHtml(bank)}</div>
                 <div class="card-avg">均价：${avg} 元/克</div>
             `;
             list.forEach(({ item, index }) => {
                 const sold = item.classList.contains('sold');
-                const price = item.querySelector('.price').value || '-';
-                const gram = item.querySelector('.gram').value || '-';
-                const worth = item.querySelector('.worth').value || '-';
-                const remark = item.querySelector('.remark').value || '无';
-                
+                const locked = item.dataset.locked === '1';
+                const lockedAttr = locked ? 'readonly' : '';
+                const lockedCls = locked ? ' locked-field' : '';
+                const v = f => escapeHtml(item.querySelector('.' + f).value);
+
+                // 修复3：卡片中的数据改为可编辑输入框，并同步回对应条目
                 html += `
                 <div class="card-item ${sold?'sold':''}" data-idx="${index}">
                     <div class="card-info">
-                        <div class="card-item-line">金价：${price} 元/克</div>
-                        <div class="card-item-line">克数：${gram} 克</div>
-                        <div class="card-item-line">金额：${worth} 元</div>
-                        <div class="card-item-line">备注：${remark}</div>
+                        <label class="card-field"><span class="lbl">金价：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="price" value="${v('price')}" ${lockedAttr}><span class="unit">元/克</span></label>
+                        <label class="card-field"><span class="lbl">克数：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="gram" value="${v('gram')}" ${lockedAttr}><span class="unit">克</span></label>
+                        <label class="card-field"><span class="lbl">金额：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="worth" value="${v('worth')}" ${lockedAttr}><span class="unit">元</span></label>
+                        <label class="card-field"><span class="lbl">备注：</span><input type="text" class="card-input" data-field="remark" placeholder="无" value="${v('remark')}"><span class="unit"></span></label>
                     </div>
                     <div class="card-btns">
                         <button class="card-btn card-sell">卖出</button>
@@ -481,18 +578,51 @@
                     </div>
                 </div>`;
             });
-            
+
             html += `
             <div class="card-add-row">
-                <button class="card-add-btn" data-bank="${bank}">+ 新增本条数据</button>
+                <button class="card-add-btn" data-bank="${escapeHtml(bank)}">+ 新增一条数据</button>
             </div>`;
-            
+
             card.innerHTML = html;
             cardContainer.appendChild(card);
         });
 
         bindCardBtns();
         bindCardAddBtns();
+        bindCardInputs();
+    }
+
+    function bindCardInputs() {
+        document.querySelectorAll('.card-item').forEach(cardItem => {
+            const idx = cardItem.dataset.idx;
+            const getRec = () => document.querySelectorAll('.record-item')[idx];
+
+            cardItem.querySelectorAll('.card-input').forEach(inp => {
+                // 实时同步到条目，并更新所在卡片的均价（不重绘，保持输入焦点）
+                inp.oninput = () => {
+                    const rec = getRec();
+                    if (!rec) return;
+                    rec.querySelector('.' + inp.dataset.field).value = inp.value;
+                    const card = cardItem.closest('.bank-card');
+                    const avgEl = card.querySelector('.card-avg');
+                    avgEl.textContent = `均价：${getBankAvg(card.dataset.bank).avg} 元/克`;
+                };
+                // 输入完成后判断是否新增成功，成功则锁定（原地更新，不重绘，避免吞掉按钮点击）
+                inp.onchange = () => {
+                    const rec = getRec();
+                    if (!rec) return;
+                    if (tryLockRecord(rec)) {
+                        cardItem.querySelectorAll('.card-input').forEach(i => {
+                            if (LOCK_FIELDS.includes(i.dataset.field)) {
+                                i.readOnly = true;
+                                i.classList.add('locked-field');
+                            }
+                        });
+                    }
+                };
+            });
+        });
     }
 
     function bindCardBtns() {
@@ -560,11 +690,11 @@
         let bar = '';
         if(filterBank !== 'all') {
             const { avg } = getBankAvg(filterBank);
-            bar = `<div class="avg-item">${filterBank}：<b>${avg}</b></div>`;
+            bar = `<div class="avg-item">${escapeHtml(filterBank)}：<b>${avg}</b></div>`;
         } else {
             banks.forEach(b=>{
                 const { avg } = getBankAvg(b);
-                bar += `<div class="avg-item">${b}：<b>${avg}</b></div>`;
+                bar += `<div class="avg-item">${escapeHtml(b)}：<b>${avg}</b></div>`;
             });
         }
         avgBar.innerHTML = bar;
@@ -596,11 +726,13 @@
                 const d = JSON.parse(ev.target.result);
                 recordsContainer.innerHTML = '';
                 d.forEach(item=>addRecord(item));
+                currentPage = 1;
                 refreshAll();
                 alert('导入成功');
             }catch(e){alert('JSON格式错误')}
         };
         r.readAsText(f);
+        e.target.value = '';
     }
 </script>
 </body>
