@@ -40,7 +40,9 @@
         }
 
         .btn {
-            padding: 8px 16px;
+            padding: 0 16px;
+            height: 34px;             /* 新增：固定高度 */
+            line-height: 34px;        /* 新增：固定行高，不再受字体影响 */
             font-size: 14px;
             border: none;
             border-radius: 6px;
@@ -361,7 +363,7 @@
             sell: 'Sell', del: 'Delete',
             lockedTip: 'Entry already added and cannot be edited (delete it and add a new one to change)',
             avg: 'Avg: ', total: 'Total: ',
-            unitPrice: 'CNY/g', unitGram: 'g', unitMoney: 'CNY',
+            unitPrice: '¥/g', unitGram: 'g', unitMoney: '¥',
             lblPrice: 'Price:', lblGram: 'Weight:', lblWorth: 'Amount:', lblRemark: 'Note:', phNone: 'None',
             addToBank: '+ Add Entry',
             fileName: 'gold_data_', importOk: 'Import successful', importErr: 'Invalid JSON format'
