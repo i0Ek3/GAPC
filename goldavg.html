@@ -53,6 +53,7 @@
         .btn-calc:disabled { background: #c2e7b0; cursor: not-allowed; }
         .btn-export { background: #e6a23c; color: #fff; }
         .btn-import { background: #909399; color: #fff; }
+        .btn-lang { background: #8e6bd8; color: #fff; }
 
         .filter-row {
             display: flex;
@@ -90,6 +91,7 @@
             box-shadow: 0 1px 4px rgba(0,0,0,0.05);
             font-size: 14px;
         }
+        .avg-item b.total-num { color: #67c23a; }
         .avg-item b {
             color: #e6a23c; font-weight: bold;
         }
@@ -164,6 +166,12 @@
             padding-bottom: 6px;
         }
         .card-avg {
+            font-size: 13px;
+            color: #e6a23c;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .card-total {
             font-size: 13px;
             color: #e6a23c;
             font-weight: bold;
@@ -284,32 +292,35 @@
         .card-input::-webkit-outer-spin-button,
         .card-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .card-btns { flex-shrink: 0; justify-content: center; }
+        /* 英文下标签/单位列略宽，输入框依然保持一致 */
+        body.lang-en .card-field { grid-template-columns: 46px minmax(0, 1fr) 28px; }
     </style>
 </head>
 <body>
     <div class="container list-mode" id="mainContainer">
-        <h1 class="title">GAPC: Gold Average Price Calculator</h1>
+        <h1 class="title" data-i18n="title"></h1>
 
         <div class="btn-row">
-            <button class="btn btn-add" id="addRecord">新增数据</button>
-            <button class="btn btn-calc" id="calcBtn">计算均价</button>
-            <button class="btn btn-export" id="exportBtn">导出数据</button>
-            <button class="btn btn-import" id="importBtn">导入数据</button>
+            <button class="btn btn-add" id="addRecord" data-i18n="add"></button>
+            <button class="btn btn-calc" id="calcBtn" data-i18n="calc"></button>
+            <button class="btn btn-export" id="exportBtn" data-i18n="export"></button>
+            <button class="btn btn-import" id="importBtn" data-i18n="import"></button>
+            <button class="btn btn-lang" id="langBtn" data-i18n="langBtn"></button>
             <input type="file" id="fileInput" accept=".json">
         </div>
 
         <div class="filter-row">
             <div class="bank-filter">
-                <label>选择银行：</label>
+                <label data-i18n="bankLabel"></label>
                 <select id="bankSelect">
-                    <option value="all">全部银行</option>
+                    <option value="all"></option>
                 </select>
             </div>
             <div class="layout-filter">
-                <label>选择布局：</label>
+                <label data-i18n="layoutLabel"></label>
                 <select id="layoutSelect">
-                    <option value="list">条目布局</option>
-                    <option value="card">卡片布局</option>
+                    <option value="list" data-i18n="listLayout"></option>
+                    <option value="card" data-i18n="cardLayout"></option>
                 </select>
             </div>
         </div>
@@ -324,6 +335,71 @@
     const pageSize = 10;
     let currentPage = 1;
     let currentMode = 'list';
+
+    /* ---------- 中英文切换 ---------- */
+    const I18N = {
+        zh: {
+            docTitle: 'GAPC：黄金均价计算器', title: 'GAPC：黄金均价计算器',
+            add: '新增数据', calc: '计算均价', export: '导出数据', import: '导入数据', langBtn: 'English',
+            bankLabel: '选择银行：', layoutLabel: '选择布局：',
+            allBanks: '全部银行', listLayout: '条目布局', cardLayout: '卡片布局',
+            phBank: '银行', phPrice: '买入金价', phGram: '克数', phWorth: '总金额', phRemark: '备注',
+            sell: '卖出', del: '删除',
+            lockedTip: '已新增成功，不可修改（如需调整请删除后重新新增）',
+            avg: '均价：', total: '总额：',
+            unitPrice: '元/克', unitGram: '克', unitMoney: '元',
+            lblPrice: '金价：', lblGram: '克数：', lblWorth: '金额：', lblRemark: '备注：', phNone: '无',
+            addToBank: '+ 新增本条数据',
+            fileName: '黄金数据_', importOk: '导入成功', importErr: 'JSON格式错误'
+        },
+        en: {
+            docTitle: 'GAPC: Gold Average Price Calculator', title: 'GAPC: Gold Average Price Calculator',
+            add: 'Add Entry', calc: 'Calculate Avg', export: 'Export Data', import: 'Import Data', langBtn: '中文',
+            bankLabel: 'Bank: ', layoutLabel: 'Layout: ',
+            allBanks: 'All Banks', listLayout: 'List View', cardLayout: 'Card View',
+            phBank: 'Bank', phPrice: 'Buy Price', phGram: 'Grams', phWorth: 'Total Amount', phRemark: 'Remark',
+            sell: 'Sell', del: 'Delete',
+            lockedTip: 'Entry already added and cannot be edited (delete it and add a new one to change)',
+            avg: 'Avg: ', total: 'Total: ',
+            unitPrice: 'CNY/g', unitGram: 'g', unitMoney: 'CNY',
+            lblPrice: 'Price:', lblGram: 'Weight:', lblWorth: 'Amount:', lblRemark: 'Note:', phNone: 'None',
+            addToBank: '+ Add Entry',
+            fileName: 'gold_data_', importOk: 'Import successful', importErr: 'Invalid JSON format'
+        }
+    };
+    let lang = 'zh';
+    try { if (localStorage.getItem('gapc_lang') === 'en') lang = 'en'; } catch (e) {}
+    const t = k => I18N[lang][k];
+
+    function applyLang() {
+        document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+        document.body.classList.toggle('lang-en', lang === 'en');
+        document.title = t('docTitle');
+        document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+
+        // 条目里的占位符、按钮、锁定提示
+        document.querySelectorAll('.record-item').forEach(it => {
+            it.querySelector('.bank').placeholder = t('phBank');
+            it.querySelector('.price').placeholder = t('phPrice');
+            it.querySelector('.gram').placeholder = t('phGram');
+            it.querySelector('.worth').placeholder = t('phWorth');
+            it.querySelector('.remark').placeholder = t('phRemark');
+            it.querySelector('.sell-btn').textContent = t('sell');
+            it.querySelector('.del-btn').textContent = t('del');
+            if (it.dataset.locked === '1') {
+                LOCK_FIELDS.forEach(f => { it.querySelector('.' + f).title = t('lockedTip'); });
+            }
+        });
+
+        refreshAll();                       // 重绘下拉框、条目、卡片
+        if (avgBar.style.display === 'flex') refreshAvgDynamic(); // 重绘均价/总额栏
+    }
+
+    function toggleLang() {
+        lang = lang === 'zh' ? 'en' : 'zh';
+        try { localStorage.setItem('gapc_lang', lang); } catch (e) {}
+        applyLang();
+    }
     const calcBtn = document.getElementById('calcBtn');
     const addRecordBtn = document.getElementById('addRecord');
 
@@ -333,7 +409,7 @@
         }
         bindEvents();
         updateBtnVisibility(currentMode);
-        refreshAll();
+        applyLang();
     };
 
     function escapeHtml(s) {
@@ -358,6 +434,7 @@
         document.getElementById('exportBtn').onclick = exportData;
         document.getElementById('importBtn').onclick = () => fileInput.click();
         document.getElementById('fileInput').onchange = importData;
+        document.getElementById('langBtn').onclick = toggleLang;
 
         document.getElementById('bankSelect').onchange = () => {
             currentPage = 1;
@@ -414,7 +491,7 @@
             const inp = div.querySelector('.' + f);
             inp.readOnly = true;
             inp.classList.add('locked-field');
-            inp.title = '已新增成功，不可修改（如需调整请删除后重新新增）';
+            inp.title = t('lockedTip');
         });
     }
 
@@ -436,13 +513,13 @@
 
         div.innerHTML = `
             <div class="record-index">${c.children.length+1}</div>
-            <input type="text" class="bank" placeholder="银行" value="${escapeHtml(data.bank)}" required>
-            <input type="number" class="price" placeholder="买入金价" step="0.01" value="${escapeHtml(data.price)}">
-            <input type="number" class="gram" placeholder="克数" step="0.01" value="${escapeHtml(data.gram)}" required>
-            <input type="number" class="worth" placeholder="总金额" step="0.01" value="${escapeHtml(data.worth)}" required>
-            <input type="text" class="remark" placeholder="备注" value="${escapeHtml(data.remark)}">
-            <button class="action-btn sell-btn">卖出</button>
-            <button class="action-btn del-btn">删除</button>
+            <input type="text" class="bank" placeholder="${t('phBank')}" value="${escapeHtml(data.bank)}" required>
+            <input type="number" class="price" placeholder="${t('phPrice')}" step="0.01" value="${escapeHtml(data.price)}">
+            <input type="number" class="gram" placeholder="${t('phGram')}" step="0.01" value="${escapeHtml(data.gram)}" required>
+            <input type="number" class="worth" placeholder="${t('phWorth')}" step="0.01" value="${escapeHtml(data.worth)}" required>
+            <input type="text" class="remark" placeholder="${t('phRemark')}" value="${escapeHtml(data.remark)}">
+            <button class="action-btn sell-btn">${t('sell')}</button>
+            <button class="action-btn del-btn">${t('del')}</button>
         `;
 
         c.appendChild(div);
@@ -504,7 +581,7 @@
         banks.forEach(b=>{
             const opt = document.createElement('option');
             opt.value = b;
-            opt.textContent = b==='all'?'全部银行':b;
+            opt.textContent = b==='all'?t('allBanks'):b;
             bankSelect.appendChild(opt);
         });
         bankSelect.value = banks.has(old) ? old : 'all';
@@ -551,10 +628,11 @@
             const card = document.createElement('div');
             card.className = 'bank-card';
             card.dataset.bank = bank;
-            const { avg } = getBankAvg(bank);
+            const { avg, v: totalAmt } = getBankAvg(bank);
             let html = `
                 <div class="card-title">${escapeHtml(bank)}</div>
-                <div class="card-avg">均价：${avg} 元/克</div>
+                <div class="card-avg">${t('avg')}${avg} ${t('unitPrice')}</div>
+                <div class="card-total">${t('total')}${totalAmt.toFixed(2)} ${t('unitMoney')}</div>
             `;
             list.forEach(({ item, index }) => {
                 const sold = item.classList.contains('sold');
@@ -567,21 +645,21 @@
                 html += `
                 <div class="card-item ${sold?'sold':''}" data-idx="${index}">
                     <div class="card-info">
-                        <label class="card-field"><span class="lbl">金价：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="price" value="${v('price')}" ${lockedAttr}><span class="unit">元/克</span></label>
-                        <label class="card-field"><span class="lbl">克数：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="gram" value="${v('gram')}" ${lockedAttr}><span class="unit">克</span></label>
-                        <label class="card-field"><span class="lbl">金额：</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="worth" value="${v('worth')}" ${lockedAttr}><span class="unit">元</span></label>
-                        <label class="card-field"><span class="lbl">备注：</span><input type="text" class="card-input" data-field="remark" placeholder="无" value="${v('remark')}"><span class="unit"></span></label>
+                        <label class="card-field"><span class="lbl">${t('lblPrice')}</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="price" value="${v('price')}" ${lockedAttr}><span class="unit">${t('unitPrice')}</span></label>
+                        <label class="card-field"><span class="lbl">${t('lblGram')}</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="gram" value="${v('gram')}" ${lockedAttr}><span class="unit">${t('unitGram')}</span></label>
+                        <label class="card-field"><span class="lbl">${t('lblWorth')}</span><input type="number" step="0.01" class="card-input${lockedCls}" data-field="worth" value="${v('worth')}" ${lockedAttr}><span class="unit">${t('unitMoney')}</span></label>
+                        <label class="card-field"><span class="lbl">${t('lblRemark')}</span><input type="text" class="card-input" data-field="remark" placeholder="${t('phNone')}" value="${v('remark')}"><span class="unit"></span></label>
                     </div>
                     <div class="card-btns">
-                        <button class="card-btn card-sell">卖出</button>
-                        <button class="card-btn card-del">删除</button>
+                        <button class="card-btn card-sell">${t('sell')}</button>
+                        <button class="card-btn card-del">${t('del')}</button>
                     </div>
                 </div>`;
             });
 
             html += `
             <div class="card-add-row">
-                <button class="card-add-btn" data-bank="${escapeHtml(bank)}">+ 新增一条数据</button>
+                <button class="card-add-btn" data-bank="${escapeHtml(bank)}">${t('addToBank')}</button>
             </div>`;
 
             card.innerHTML = html;
@@ -605,8 +683,9 @@
                     if (!rec) return;
                     rec.querySelector('.' + inp.dataset.field).value = inp.value;
                     const card = cardItem.closest('.bank-card');
-                    const avgEl = card.querySelector('.card-avg');
-                    avgEl.textContent = `均价：${getBankAvg(card.dataset.bank).avg} 元/克`;
+                    const stat = getBankAvg(card.dataset.bank);
+                    card.querySelector('.card-avg').textContent = `${t('avg')}${stat.avg} ${t('unitPrice')}`;
+                    card.querySelector('.card-total').textContent = `${t('total')}${stat.v.toFixed(2)} ${t('unitMoney')}`;
                 };
                 // 输入完成后判断是否新增成功，成功则锁定（原地更新，不重绘，避免吞掉按钮点击）
                 inp.onchange = () => {
@@ -687,15 +766,15 @@
             const b = it.querySelector('.bank').value.trim();
             if(b) banks.add(b);
         });
+        const itemHtml = b => {
+            const { avg, v } = getBankAvg(b);
+            return `<div class="avg-item">${escapeHtml(b)}${lang === 'en' ? ': ' : '：'}${t('avg')}<b>${avg}</b> ${t('unitPrice')}${lang === 'en' ? '&nbsp;&nbsp;' : '　'}${t('total')}<b class="total-num">${v.toFixed(2)}</b> ${t('unitMoney')}</div>`;
+        };
         let bar = '';
         if(filterBank !== 'all') {
-            const { avg } = getBankAvg(filterBank);
-            bar = `<div class="avg-item">${escapeHtml(filterBank)}：<b>${avg}</b></div>`;
+            bar = itemHtml(filterBank);
         } else {
-            banks.forEach(b=>{
-                const { avg } = getBankAvg(b);
-                bar += `<div class="avg-item">${escapeHtml(b)}：<b>${avg}</b></div>`;
-            });
+            banks.forEach(b=>{ bar += itemHtml(b); });
         }
         avgBar.innerHTML = bar;
         avgBar.style.display = 'flex';
@@ -713,7 +792,7 @@
         const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = '黄金数据_'+new Date().toLocaleDateString()+'.json';
+        a.download = t('fileName')+new Date().toLocaleDateString()+'.json';
         a.click();
     }
 
@@ -728,8 +807,8 @@
                 d.forEach(item=>addRecord(item));
                 currentPage = 1;
                 refreshAll();
-                alert('导入成功');
-            }catch(e){alert('JSON格式错误')}
+                alert(t('importOk'));
+            }catch(e){alert(t('importErr'))}
         };
         r.readAsText(f);
         e.target.value = '';
